@@ -7,10 +7,15 @@ class Rotor():
     def show_position(self):
         print("What position would you like the rotor position to be at? (1-26)")
         answer = input()
+        if answer == 1:
+            Rotor1
+
         return answer
+        
     #def rotate():
         
-
+    Rotor1 = ["A", "B", "C", "D", "E", "F","G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
+   
     def setPos(self, position):
         self.position = int(position) % 26
 
