@@ -20,10 +20,6 @@ class Rotor():
         self.position = int(position) % 26
 
     
-    
-
-    
-    
 rotor1 = Rotor(26)
 print(f'Rotor 1 is in position {rotor1.show_position()}')
 rotor2 = Rotor(26)
@@ -55,6 +51,4 @@ print (f'The word you want to encrypt is {enigma.show_word()}')
 
 Plug = Plugboard()
 print (f'Now swapping... {Plug.setting1()}') 
-        
-
-    
+            

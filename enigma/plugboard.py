@@ -1,23 +1,26 @@
 # Plugboard Class
 class Plugboard():
+
+    def __init__(self):
+        self.name = "Default Plugboard"
+        self.letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 
+                       'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 
+                       'u', 'v', 'w', 'x', 'y', 'z']
+        
     def setting1(self):
-        print("What letter would you like to swap?")
-        swap1 = input()
+        swap1 = input("What letter would you like to swap?")
         print (f'What letter would you like to swap  {swap1}  with?')
-        swap2 = input()
-        print(f'You are swapping {swap1} with {swap2}')
+        swap2 = input(f'You are swapping {swap1} with {swap2}')
 
-#Engima Class
+        if swap1 in self.letters and swap2 in self.letters:
+                s = swap2.replace(swap1)
+                return s
 
-class Enigma():
-   
-     def show_word(self):
-        print(("What word would you like to encrypt?"))
-        word = input()
-        return word
-     
-enigma = Enigma()
-print (f'The word you want to encrypt is {enigma.show_word()}')
 
-Plug = Plugboard()
-print (f'Now swapping... {Plug.setting1()}') 
+
+
+
+
+            
+
+

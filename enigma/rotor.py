@@ -4,7 +4,7 @@ class Rotor:
         self.letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 
                        'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 
                        'u', 'v', 'w', 'x', 'y', 'z']
-        self.offset = 0;
+        self.offset = 0
     
     def encrypt(self):
         message = input("What is your message you want to encrypt? ").lower()
@@ -28,5 +28,4 @@ class Rotor:
     
     def show_position(self):
         return self.offset
-    
     
