@@ -1,19 +1,26 @@
-import sqlite3
-import rotor
-import plugboard  
+from rotor import Rotor
+from database import init_db, add_entry, close_db
+
+DB_PATH = "database.db"
 
 def main():
-    letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 
-              'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 
-              'u', 'v', 'w', 'x', 'y', 'z']
+    # Initialize Database
+    database = init_db()
     
-    for i in range(len(letters)):
-        print(f"{i + 1}) {letters[i]} \n")
-        
-    # Create and use rotor
-    rotor1 = rotor.Rotor()
-    # Test encryption
-    rotor1.encrypt()
-    print(f"Your rotor is in position {rotor1.show_position()}!")
+    message = input("Enter the message to encrypt: ")
+    offset = int(input("Enter the rotor offset (1-25): "))
+
+    print(f"{offset}")
+
+    rotor = Rotor(offset)
+    encrypted = rotor.encrypt(message)
+
+    crn = add_entry(database, message, encrypted)
+    print(f"Saved entry CRN={crn}")
+
+    print(f"Original : {message}")
+    print(f"Encrypted: {encrypted}")
+
+    close_db(database)
 
 main()  
