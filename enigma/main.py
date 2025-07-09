@@ -21,8 +21,7 @@ def main():
     swap2 = input(f'What letter would you like to swap {swap1} with? ')
     # Create plugboard class
     plugboard1 = Plugboard()
-    plugboard1.set_swap(swap1, swap2)
-    pbencrypted = plugboard1.swap(encrypted)
+    pbencrypted = plugboard1.swap(encrypted, swap1, swap2)
     print(pbencrypted)
     
     # Database Entry
