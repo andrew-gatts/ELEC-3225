@@ -1,7 +1,5 @@
 class Rotor:
     def __init__(self, offset=0):
-
-        # Cleaner implementation from https://stackoverflow.com/questions/16060899/alphabet-range-in-python
         # Creates an array of all of the letters
         self.letters = [chr(i + ord('a')) for i in range (26)]
         self.offset = offset % 26
@@ -15,20 +13,52 @@ class Rotor:
         return self.offset
     
     def encrypt(self, message: str) -> str:
-        encrypted_message = []
-        for char in message.lower():
-            if char in self.letters:
-                # Current index spot
-                current_pos = self.letters.index(char)
-                # Calculate new position with wraparound
-                new_pos = (current_pos + self.offset) % 26
-                encrypted_message.append(self.letters[new_pos])
+        encrypted = []
+        for ch in message.lower():
+            if ch in self.letters:
+                # 1) basic Caesar shift
+                idx = self.letters.index(ch)
+                new_idx = (idx + self.offset) % 26
+                enc = self.letters[new_idx]
+
+                # 2) if it would duplicate the last encrypted char, bump it one more
+                if encrypted and encrypted[-1] == enc:
+                    new_idx = (new_idx + 1) % 26
+                    enc = self.letters[new_idx]
+
+                encrypted.append(enc)
             else:
-                # Encrypt Message, add new letters to new value
-                encrypted_message.append(char)
-                
-        return ''.join(encrypted_message)
+                # non-letters pass through
+                encrypted.append(ch)
+
+        return ''.join(encrypted)
+    
+    def decrypt(self, encrypted_message: str) -> str:
+        decrypted = []
+        for ch in encrypted_message.lower():
+            if ch in self.letters:
+                cur_idx = self.letters.index(ch)
+
+                # normal reverse shift
+                orig_idx = (cur_idx - self.offset) % 26
+
+                # detect if this was the “skipped duplicate” case
+                if decrypted:
+                    prev = decrypted[-1]
+                    prev_enc_idx = (self.letters.index(prev) + self.offset) % 26
+                    skip_enc_idx = (prev_enc_idx + 1) % 26
+
+                    # if our ch matches that “skipped‐to” codepoint,
+                    # undo from cur_idx-1 instead of straight reverse
+                    if cur_idx == skip_enc_idx:
+                        orig_idx = (cur_idx - 1 - self.offset) % 26
+
+                decrypted.append(self.letters[orig_idx])
+            else:
+                decrypted.append(ch)
+
+        return ''.join(decrypted)
+
     
     def show_position(self):
         return self.offset
-    
