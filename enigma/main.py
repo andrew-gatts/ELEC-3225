@@ -33,6 +33,9 @@ def interractive():
     close_db(database)
 
 if __name__ == "__main__":
+    # To test the code run `python3 main.py test`
+    # otherwise run `python3 main.py`
+    # to get a list of the commands run 'python3 main.py ?'
     parser = argparse.ArgumentParser(
         description="ELEC 3225 Enigma machine"
     )

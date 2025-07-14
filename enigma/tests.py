@@ -12,11 +12,9 @@ class EncryptionTests(unittest.TestCase):
         # Use an in-memory database (if your init_db supports it) for fast, disposable tests
         try:
             self.db = init_db(":memory:")
-            print("memory databse being used")
         except TypeError:
             # fallback if init_db doesn’t take a path argument
             self.db = init_db()
-            print("memory database does not work")
 
     def tearDown(self):
         close_db(self.db)
