@@ -11,7 +11,7 @@ def init_db(db_path=DB_PATH):
     database = sqlite3.connect(db_path)
     cursor = database.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    print("Existing tables:", cursor.fetchall())
+    # print("Existing tables:", cursor.fetchall())
     
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS data (
