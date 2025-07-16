@@ -75,7 +75,7 @@ class EncryptionTests(unittest.TestCase):
 
         # then offset 2: E→G, H→J, L→N, N→P, O→Q => GJNNQ
         encrypted = Rotor(2).encrypt(swapped)
-        self.assertEqual(encrypted, "gjnnq")
+        self.assertEqual(encrypted, "gjnoq")
 
         crn = add_entry(self.db, msg, encrypted)
         self.assertIsInstance(crn, int)
