@@ -1,10 +1,11 @@
 from rotor import Rotor
 from plugboard import Plugboard
 from database import init_db, add_entry, close_db
+import argparse
 
 DB_PATH = "database.db"
 
-def main():
+def interractive():
     # Initialize Database
     database = init_db()
     #Testing Rotor Encryption
@@ -24,4 +25,24 @@ def main():
     print(f"Saved entry CRN={crn}")
     close_db(database)
 
-main()  
+if __name__ == "__main__":
+    # To test the code run `python3 main.py test`
+    # otherwise run `python3 main.py`
+    # to get a list of the commands run 'python3 main.py ?'
+    parser = argparse.ArgumentParser(
+        description="ELEC 3225 Enigma machine"
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=["run", "test"],
+        default="run",
+        help="'run' for interractive mode, 'test' to run unit tests",
+    )
+    args = parser.parse_args()
+
+    if args.command == "test":
+        import tests
+        tests.run_tests()
+    else:
+        interractive()
