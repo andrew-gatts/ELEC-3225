@@ -34,9 +34,11 @@ Other distros, Good luck :)
 
 ### Other
 
+RISC-V Open-source the world
+
 Here is the [Python install guide](https://pythongeeks.org/python-3-installation-and-setup-guide/)
 
----
+# Run the file
 
 Clone the repo into a folder of your choice and open a command line there
 
@@ -44,9 +46,16 @@ Clone the repo into a folder of your choice and open a command line there
 git clone https://github.com/andrew-gatts/ELEC-3225.git && cd ELEC-3225
 ```
 
-Run the help file for information on how to run the program:
+To run the program just run the main file:
 
 ```
-python3 main.py --help
+python3 main.py
 ```
+
+## Individual components
+
+To run the individual components bombe and enigma refer to their readme:
+
+[Enigma](enigma/README.md)
+[Bombe](bombe/README.md)
 
