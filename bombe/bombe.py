@@ -189,15 +189,18 @@ def array_match():
     print("Possible pairs:", poss_combo)
     return poss_combo
 
-
+# -------------------------- MAIN --------------------------
 def main():
-    print("=== Bombe / Custom Rotor Enigma ===")
+    print("\n === Bombe ===")
     plugboard = {}
 
     # default: 3 rotors, offsets unknown initially
     rotor_pattern = ["0", "0", "0"]
 
-    while True:
+    # Initialize choice at 1 to get menu (anything but 0)
+    choice = 1
+
+    while choice != 0:
         print("\nMenu:\n"
               " 1) Set rotor offsets (use ? for unknowns)\n"
               " 2) Enter plugboard pairs\n"
@@ -206,74 +209,72 @@ def main():
               " 5) Guess unknown offsets\n"
               " 6) Crib helper (array_match)\n"
               " 0) Quit")
-        choice = input("Select: ").strip()
+        choice = int(input("Select: "))
 
-        if choice == '0':
-            break
+        match choice:
+            case 1:
+                r1 = input("Rotor 1 offset (0-25 or ?): ").strip()
+                r2 = input("Rotor 2 offset (0-25 or ?): ").strip()
+                r3 = input("Rotor 3 offset (0-25 or ?): ").strip()
+                rotor_pattern = [r1, r2, r3]
+                print("Pattern set:", rotor_pattern)
 
-        elif choice == '1':
-            r1 = input("Rotor 1 offset (0-25 or ?): ").strip()
-            r2 = input("Rotor 2 offset (0-25 or ?): ").strip()
-            r3 = input("Rotor 3 offset (0-25 or ?): ").strip()
-            rotor_pattern = [r1, r2, r3]
-            print("Pattern set:", rotor_pattern)
+            case 2:
+                while True:
+                    pair = input("Add plugboard pair (e.g. AB), blank to stop: ").lower().strip()
+                    if not pair:
+                        break
+                    if len(pair) != 2 or not pair.isalpha():
+                        print("Invalid pair")
+                        continue
+                    if add_mapping(plugboard, pair[0], pair[1]):
+                        print("Added:", pair)
+                    else:
+                        print("Already mapped or invalid")
 
-        elif choice == '2':
-            while True:
-                pair = input("Add plugboard pair (e.g. AB), blank to stop: ").lower().strip()
-                if not pair:
-                    break
-                if len(pair) != 2 or not pair.isalpha():
-                    print("Invalid pair")
+            case 3:
+                msg = input("Plaintext: ")
+                # Must resolve all '?' first
+                if '?' in rotor_pattern:
+                    print("You have unknown offsets. Set them or use guessing.")
                     continue
-                if add_mapping(plugboard, pair[0], pair[1]):
-                    print("Added:", pair)
+                offsets = [int(x) % 26 for x in rotor_pattern]
+                rotors = [Rotor(o) for o in offsets]
+                ct = encrypt_message(msg, rotors, plugboard)
+                print("Ciphertext:", ct)
+
+            case 4:  
+                ct = input("Ciphertext: ")
+                if '?' in rotor_pattern:
+                    print("You have unknown offsets. Set them or use guessing.")
+                    continue
+                offsets = [int(x) % 26 for x in rotor_pattern]
+                rotors = [Rotor(o) for o in offsets]
+                pt = decrypt_message(ct, rotors, plugboard)
+                print("Plaintext:", pt)
+
+            case 5:
+                ct = input("Ciphertext to test: ")
+                pat_in = input("Pattern (comma-separated, ?=unknown) or blank to reuse current: ").strip()
+                if pat_in:
+                    rotor_pattern = [p.strip() for p in pat_in.split(',')]
+
+                words_in = input("Dictionary words comma-separated (blank = default): ").strip()
+                if words_in:
+                    dict_words = [w.strip() for w in words_in.split(',') if w.strip()]
                 else:
-                    print("Already mapped or invalid")
+                    dict_words = ["THE", "AND", "TO", "OF", "YOU", "IS", "IN", "THAT", "IT", "FOR"]
 
-        elif choice == '3':
-            msg = input("Plaintext: ")
-            # Must resolve all '?' first
-            if '?' in rotor_pattern:
-                print("You have unknown offsets. Set them or use guessing.")
-                continue
-            offsets = [int(x) % 26 for x in rotor_pattern]
-            rotors = [Rotor(o) for o in offsets]
-            ct = encrypt_message(msg, rotors, plugboard)
-            print("Ciphertext:", ct)
+                top_n = input("Show top how many? [10]: ").strip() or '10'
+                top_n = int(top_n)
 
-        elif choice == '4':
-            ct = input("Ciphertext: ")
-            if '?' in rotor_pattern:
-                print("You have unknown offsets. Set them or use guessing.")
-                continue
-            offsets = [int(x) % 26 for x in rotor_pattern]
-            rotors = [Rotor(o) for o in offsets]
-            pt = decrypt_message(ct, rotors, plugboard)
-            print("Plaintext:", pt)
+                guess_offsets(ct, rotor_pattern, plugboard, dict_words, top_n)
 
-        elif choice == '5':
-            ct = input("Ciphertext to test: ")
-            pat_in = input("Pattern (comma-separated, ?=unknown) or blank to reuse current: ").strip()
-            if pat_in:
-                rotor_pattern = [p.strip() for p in pat_in.split(',')]
+            case 6:
+                array_match()
 
-            words_in = input("Dictionary words comma-separated (blank = default): ").strip()
-            if words_in:
-                dict_words = [w.strip() for w in words_in.split(',') if w.strip()]
-            else:
-                dict_words = ["THE", "AND", "TO", "OF", "YOU", "IS", "IN", "THAT", "IT", "FOR"]
-
-            top_n = input("Show top how many? [10]: ").strip() or '10'
-            top_n = int(top_n)
-
-            guess_offsets(ct, rotor_pattern, plugboard, dict_words, top_n)
-
-        elif choice == '6':
-            array_match()
-
-        else:
-            print("Unknown choice.")
+            case _:
+                print("Unknown choice.")
 
     print("Bye!")
 

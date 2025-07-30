@@ -4,13 +4,22 @@ from database import init_db, add_entry, close_db
 DB_PATH = "database.db"
 
 def main():
-    choice = int(input("Welcome to Enigma! What would you like to do?\n 1.) Set up Plugboard\n 2.) Set Rotors\n 3.) Set Reflector\n 4.) Encrypt Message\n 5.) Decrypt Message\n 6.) Exit "))
+    print("\n=== Enigma ===")
     # Initialize variables to track setup state
+    choice = 1 
     plugboard1 = None
     rotor1 = None
     rotor2 = None
     rotor3 = None
-    while choice != 6:  
+    while choice != 0:
+        print("\nMenu:\n" 
+              " 1) Set up Plugboard\n"
+              " 2) Set Rotors\n"
+              " 3) Set Reflector\n"
+              " 4) Encrypt Message\n"
+              " 5) Decrypt Message\n"
+              " 0) Quit ")
+        choice = int(input("Select: "))
         match choice: 
             case 1:
                 print("----ENTERING PLUGBOARD CONFIG ----\n")
@@ -78,13 +87,13 @@ def main():
                         decrypted_message = plugboard1.apply_plugboard(decrypted_message)
                     
                     print(f"Decrypted message: {decrypted_message}")
-            case 6:
+            case 0:
                 print("You are now exiting the program.")
                 break
             case _:
-                print("Invalid choice. Please select a valid option.")
-        
-        choice = int(input("\n 1.) Set up Plugboard\n 2.) Set Rotors\n 3.) Set Reflector\n 4.) Encrypt Message\n 5.) Decrypt Message\n 6.) Exit "))
-
+                print("Invalid choice. Please select a valid option.")        
+      
     print("Goodbye!")
-main()  
+
+if __name__ == "__main__":
+    main()  
