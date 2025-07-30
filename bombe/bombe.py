@@ -1,122 +1,282 @@
-# Bombe
-from os import name
-from array import * 
+#!/usr/bin/env python3
+"""
+Enigma/Bombe helper using the user's custom Rotor definition (offset + repeat-bump rule).
+Implements:
+  • Plugboard (symmetric swaps)
+  • Three rotors (or any number) using the provided encrypt/decrypt behavior
+  • Decrypt path: undo plugboard first, then run rotors in reverse with Rotor.decrypt, then plugboard again
+  • Guessing function: supply '?' for unknown offsets to brute-force and score outputs by dictionary hits
 
-# Set rotor position
+Everything is in one file; you can run it directly.
+"""
+
+from itertools import product
+import re
+import string
+
+# ------------------------- ROTOR -------------------------
 class Rotor:
-    def __init__(self, array):
-        self.array = array
-        self.position = 0
+    def __init__(self, offset: int = 0):
+        # Creates an array of all of the letters
+        self.letters = [chr(i + ord('a')) for i in range(26)]
+        self.offset = offset % 26
 
-    def setPosition(self, position):
-        self.position = int(position) % 26
+    def set_offset(self, offset: int):
+        self.offset = offset % 26
 
-    def forward(self, letter_char):
-        shiftInput = (letter_char + self.position) % 26
-        return (self.array[shiftInput] - self.position) % 26
+    def get_offset(self) -> int:
+        return self.offset
 
-    def backward(self, letter_char):
-        return (self.array.index((letter_char + self.position) % 26) - self.position) % 26
+    def encrypt(self, message: str) -> str:
+        """Encrypt entire message with this rotor, following the rule:
+           1) shift by offset
+           2) if output would repeat previous encrypted char, bump +1
+        """
+        encrypted = []
+        for char in message.lower():
+            if char in self.letters:
+                idx = self.letters.index(char)
+                new_idx = (idx + self.offset) % 26
+                enc_char = self.letters[new_idx]
 
-    def rotate(self):
-        self.position = (self.position + 1) % 26
-        return self.position == 0
-    
+                # bump if it would repeat the previous encrypted char
+                if encrypted and encrypted[-1] == enc_char:
+                    new_idx = (new_idx + 1) % 26
+                    enc_char = self.letters[new_idx]
 
-def assign_starts(rotor_1, rotor_2, rotor_3):
+                encrypted.append(enc_char)
+            else:
+                encrypted.append(char)
+        return ''.join(encrypted)
 
-#new settings every day for rotors
-    print("Set starting positions for the rotors")
-    set_r1 = input("Set rotor 1 to desired starting point. Enter a number from 0-25: ")
-    rotor_1.setPosition(set_r1)
+    def decrypt(self, encrypted_message: str) -> str:
+        """Reverse of encrypt(). See explanation in prior message."""
+        decrypted = []
+        prev_enc_index = None  # index of previous encrypted letter (after all processing)
 
-    set_r2 = input("Set rotor 2 to desired starting point. Enter a number from 0-25:  ")
-    rotor_2.setPosition(set_r2)
-    
-    set_r3 = input("Set rotor 3 to desired starting point. Enter a number from 0-25: ")
-    rotor_3.setPosition(set_r3)
+        for char in encrypted_message.lower():
+            if char in self.letters:
+                cur_enc_index = self.letters.index(char)
 
-def run(letter, rotor_1, rotor_2, rotor_3, reflector):
-    letter = rotor_1.forward(letter)
-    letter = rotor_2.forward(letter)
-    letter = rotor_3.forward(letter)
-# message reflected and sent back through rotors
-    letter = reflector.forward(letter)
-    letter = rotor_3.backward(letter)
-    letter = rotor_2.backward(letter)
-    letter = rotor_1.backward(letter)
+                # assume no bump
+                orig_index = (cur_enc_index - self.offset) % 26
+                pre_bump_index = (orig_index + self.offset) % 26
 
-#rotors will rotate after each letter is encrypted    
-    if rotor_1.rotate():
-        if rotor_2.rotate(): 
-            rotor_3.rotate()
-        pass
-    return letter
+                # if a bump happened during encryption, then the pre_bump result
+                # equals the previous encrypted letter index
+                if prev_enc_index is not None and pre_bump_index == prev_enc_index:
+                    # undo the +1 bump
+                    orig_index = (cur_enc_index - 1 - self.offset) % 26
 
-#******thinking about getting rid of this section altogether
-  def array_Match():
-    message_crypt=input("Type in the enigma message you wish to decrypt: ")
-    guess_length=input("What do you think the message is?
-    
-    cryptLength=len([ele for ele in message_crypt if ele.isalpha()])
-    guess_length=len([ele for ele in decoder_machine if ele.isalpha()])
-    
-    length_difference= cryptLength-guess_length
-    print(length_difference )
-    poss_combo = []
-    
-    for y in range (length_difference+1):
-        for x in range (y, guess_length+y):
-            if (message_crypt[x] != decoder_machine[x-y]):
-             poss_combo.append([message_crypt[x], decoder_machine[x-y]])
-    print (poss_combo)    
-    return poss_combo
+                decrypted.append(self.letters[orig_index])
+                prev_enc_index = cur_enc_index
+            else:
+                decrypted.append(char)
+                prev_enc_index = None
 
-def add_mapping(plugboardMap, letter1, letter2):
-    if letter1 in plugboardMap or letter2 in plugboardMap:
+        return ''.join(decrypted)
+
+    def show_position(self):
+        return self.offset
+
+
+# ------------------------- PLUGBOARD -------------------------
+def add_mapping(plugboard_map: dict, a: str, b: str) -> bool:
+    """Add symmetric mapping a<->b if neither is already used."""
+    a = a.lower(); b = b.lower()
+    if a in plugboard_map or b in plugboard_map:
         return False
-    plugboardMap[letter1] = letter2
-    plugboardMap[letter2] = letter1
+    plugboard_map[a] = b
+    plugboard_map[b] = a
     return True
 
-alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-plugboard = {}  
-crib = array_Match()
+
+def plugboard_apply(text: str, plugboard_map: dict) -> str:
+    return ''.join(plugboard_map.get(ch, ch) for ch in text.lower())
 
 
-# basic plugboard settings
-array_1 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0]
-array_2 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0]
-array_3 = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0]
-reflectArray = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0]
-rotor_1 = Rotor(array_1)
-rotor_2 = Rotor(array_2)
-rotor_3 = Rotor(array_3)
-reflector = Rotor(reflectArray)
+# ------------------------- ENCRYPT / DECRYPT PIPELINE -------------------------
+def encrypt_message(message: str, rotors: list[Rotor], plugboard_map: dict) -> str:
+    # Plugboard first
+    msg = plugboard_apply(message, plugboard_map)
+    # Forward through each rotor (encrypt)
+    for r in rotors:
+        msg = r.encrypt(msg)
+    # (No reflector stage here because the provided rotor model already contains asymmetry.)
+    # Plugboard again
+    msg = plugboard_apply(msg, plugboard_map)
+    return msg
 
-for i in range (26):
-    plugboardGuess = alphabet[i] 
-            
-    
-    for f in range (len(crib)):
 
-        if (plugboardGuess == crib[f][0]) :
+def decrypt_message(ciphertext: str, rotors: list[Rotor], plugboard_map: dict) -> str:
+    # Undo plugboard first
+    msg = plugboard_apply(ciphertext, plugboard_map)
+    # Backwards through rotors using decrypt
+    for r in reversed(rotors):
+        msg = r.decrypt(msg)
+    # Final plugboard
+    msg = plugboard_apply(msg, plugboard_map)
+    return msg
+
+
+# ------------------------- GUESSING UTILITIES -------------------------
+def expand_unknowns(pattern_list):
+    """pattern_list like ['?', '5', '?'] -> iterator of all tuples"""
+    iterables = []
+    for p in pattern_list:
+        if p == "?":
+            iterables.append(range(26))
+        else:
+            iterables.append([int(p) % 26])
+    return product(*iterables)
+
+
+def score_plaintext(pt: str, words: list[str]) -> int:
+    """Simple word counter using word boundaries."""
+    pt_up = pt.upper()
+    count = 0
+    for w in words:
+        if not w:
             continue
-        print ("Mapping Guess: ")
-        print (plugboardGuess, crib[f][0])
-        match = False
-       
-        #Check if plugboard guess already exists in mapping
-        if (plugboardGuess in plugboardGuess and plugboardGuess[plugboardGuess] == crib[f][0]) 
+        if re.search(r"\b" + re.escape(w.upper()) + r"\b", pt_up):
+            count += 1
+    return count
 
-            match = True
-            print("Mapping already exitsts:", plugboardGuess, crib[f][0])
-            continue
+
+def guess_offsets(ciphertext: str,
+                  rotor_pattern: list[str],
+                  plugboard_map: dict,
+                  dict_words: list[str],
+                  top_n: int = 10) -> list[tuple[int, tuple[int, ...], str]]:
+    """Brute-force unknown offsets. Returns top_n results sorted by score.
+       Each result is (score, offsets_tuple, plaintext)
+    """
+    results = []
+    for combo in expand_unknowns(rotor_pattern):
+        # Build rotors fresh for each combo
+        rotors = [Rotor(o) for o in combo]
+        pt = decrypt_message(ciphertext, rotors, plugboard_map)
+        s = score_plaintext(pt, dict_words)
+        results.append((s, combo, pt))
+
+    results.sort(key=lambda x: (-x[0], x[1]))
+
+    print(f"\nTop {top_n} candidates:")
+    for s, combo, pt in results[:top_n]:
+        print(f"Offsets {combo} | Score={s}\n{pt}\n")
+
+    return results[:top_n]
+
+
+# ------------------------- CLI / MAIN -------------------------
+def array_match():
+    """Replicates the earlier array_Match idea: compare ciphertext against a crib and list mismatches."""
+    message_crypt = input("Type in the enigma message you wish to decrypt: ").lower()
+    decoder_machine = input("What do you think the message is (crib)? ").lower()
+
+    crypt_len = len([c for c in message_crypt if c.isalpha()])
+    guess_len = len([c for c in decoder_machine if c.isalpha()])
+    diff = crypt_len - guess_len
+    print("Length difference:", diff)
+
+    poss_combo = []
+    for y in range(diff + 1):
+        for x in range(y, guess_len + y):
+            if x < len(message_crypt) and (x - y) < len(decoder_machine):
+                if message_crypt[x].isalpha() and decoder_machine[x - y].isalpha():
+                    if message_crypt[x] != decoder_machine[x - y]:
+                        poss_combo.append([message_crypt[x], decoder_machine[x - y]])
+    print("Possible pairs:", poss_combo)
+    return poss_combo
+
+
+def main():
+    print("=== Bombe / Custom Rotor Enigma ===")
+    plugboard = {}
+
+    # default: 3 rotors, offsets unknown initially
+    rotor_pattern = ["0", "0", "0"]
+
+    while True:
+        print("\nMenu:\n"
+              " 1) Set rotor offsets (use ? for unknowns)\n"
+              " 2) Enter plugboard pairs\n"
+              " 3) Encrypt message\n"
+              " 4) Decrypt message\n"
+              " 5) Guess unknown offsets\n"
+              " 6) Crib helper (array_match)\n"
+              " 0) Quit")
+        choice = input("Select: ").strip()
+
+        if choice == '0':
             break
-            
-        if match: 
-            continue
-            if add_mapping(plugboard, plugboardGuess, crib[f][0]):
-                print("Mapping added: ", plugboardGuess, crib[f][0])
+
+        elif choice == '1':
+            r1 = input("Rotor 1 offset (0-25 or ?): ").strip()
+            r2 = input("Rotor 2 offset (0-25 or ?): ").strip()
+            r3 = input("Rotor 3 offset (0-25 or ?): ").strip()
+            rotor_pattern = [r1, r2, r3]
+            print("Pattern set:", rotor_pattern)
+
+        elif choice == '2':
+            while True:
+                pair = input("Add plugboard pair (e.g. AB), blank to stop: ").lower().strip()
+                if not pair:
+                    break
+                if len(pair) != 2 or not pair.isalpha():
+                    print("Invalid pair")
+                    continue
+                if add_mapping(plugboard, pair[0], pair[1]):
+                    print("Added:", pair)
+                else:
+                    print("Already mapped or invalid")
+
+        elif choice == '3':
+            msg = input("Plaintext: ")
+            # Must resolve all '?' first
+            if '?' in rotor_pattern:
+                print("You have unknown offsets. Set them or use guessing.")
+                continue
+            offsets = [int(x) % 26 for x in rotor_pattern]
+            rotors = [Rotor(o) for o in offsets]
+            ct = encrypt_message(msg, rotors, plugboard)
+            print("Ciphertext:", ct)
+
+        elif choice == '4':
+            ct = input("Ciphertext: ")
+            if '?' in rotor_pattern:
+                print("You have unknown offsets. Set them or use guessing.")
+                continue
+            offsets = [int(x) % 26 for x in rotor_pattern]
+            rotors = [Rotor(o) for o in offsets]
+            pt = decrypt_message(ct, rotors, plugboard)
+            print("Plaintext:", pt)
+
+        elif choice == '5':
+            ct = input("Ciphertext to test: ")
+            pat_in = input("Pattern (comma-separated, ?=unknown) or blank to reuse current: ").strip()
+            if pat_in:
+                rotor_pattern = [p.strip() for p in pat_in.split(',')]
+
+            words_in = input("Dictionary words comma-separated (blank = default): ").strip()
+            if words_in:
+                dict_words = [w.strip() for w in words_in.split(',') if w.strip()]
             else:
-                print("Mapping already exists or invalid: ", plugboardGuess, crib[f][0])
+                dict_words = ["THE", "AND", "TO", "OF", "YOU", "IS", "IN", "THAT", "IT", "FOR"]
+
+            top_n = input("Show top how many? [10]: ").strip() or '10'
+            top_n = int(top_n)
+
+            guess_offsets(ct, rotor_pattern, plugboard, dict_words, top_n)
+
+        elif choice == '6':
+            array_match()
+
+        else:
+            print("Unknown choice.")
+
+    print("Bye!")
+
+
+if __name__ == '__main__':
+    main()
