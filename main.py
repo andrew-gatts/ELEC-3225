@@ -25,36 +25,8 @@ message = (
     "Please accept your award: an empty box labeled 'Try Again.'\n"
 )
 
-# ─── 1) Locate your sub‑apps ───────────────────────────────────────────────────
-
-BASE_DIR      = os.path.dirname(os.path.abspath(__file__))
-BOMBE_PATH    = os.path.join(BASE_DIR, 'bombe', 'bombe.py')
-ENIGMA_DIR    = os.path.join(BASE_DIR, 'enigma')
-ENIGMA_PATH   = os.path.join(ENIGMA_DIR, 'enigma.py')
-
-# ─── 2) Make sure Enigma can see its helpers (rotor.py, plugboard.py, database.py) ────
-
-# Prepend the enigma/ folder to sys.path so that inside enigma.py:
-#     from rotor import Rotor
-#     from plugboard import Plugboard
-#     from database import init_db, add_entry, close_db
-# will continue to work unchanged.
-sys.path.insert(0, ENIGMA_DIR)
-
-# ─── 3) Load each script’s namespace ────────────────────────────────────────────
-
-# run_path returns the module’s globals dict; grab its `main` function
-bombe_ns  = runpy.run_path(BOMBE_PATH)
-bombe_main = bombe_ns.get('main')
-if not bombe_main:
-    raise RuntimeError("Could not find main() in bombe/bombe.py")
-
-enigma_ns  = runpy.run_path(ENIGMA_PATH)
-enigma_main = enigma_ns.get('main')
-if not enigma_main:
-    raise RuntimeError("Could not find main() in enigma/enigma.py")
-
-# ─── 4) Unified launcher ───────────────────────────────────────────────────────
+from bombe.bombe import main as bombe_main
+from enigma.enigma import main as enigma_main
 
 def main():
     while True and message:
