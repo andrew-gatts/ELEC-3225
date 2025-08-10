@@ -17,10 +17,38 @@ def encrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard, DB_PAT
     if plugboard is not None:
         message = plugboard.apply_plugboard(message)
 
-    # Then apply rotors in sequence
-    out = message
-    for r in rotors:
-        out = r.encrypt(out)
+    # Snapshot offsets so we can restore
+    original_offsets = [r.get_offset() for r in rotors]
+
+    # Copy of offsets we will step
+    local_offsets = original_offsets[:]
+
+    def step_offsets():
+        # Rightmost rotor (last in list) steps every letter; carry left on wrap
+        for i in range(len(local_offsets) - 1, -1, -1):
+            local_offsets[i] = (local_offsets[i] + 1) % 26
+            if local_offsets[i] != 0:
+                break
+
+    # Encrypt the message accounting for double letters
+    out_chars = []
+    try:
+        for ch in message:
+            if ch.isalpha():
+                step_offsets()
+                for i, r in enumerate(rotors):
+                    r.set_offset(local_offsets[i])
+                char = ch.lower()
+                for r in rotors:
+                    char = r.encrypt(char)
+                out_chars.append(char)
+            else:
+                out_chars.append(ch)
+        out = ''.join(out_chars)
+    finally:
+        # restore caller’s offsets
+        for r, off in zip(rotors, original_offsets):
+            r.set_offset(off)
 
     # Apply plugboard again at the end (if configured)
     if plugboard is not None:
@@ -38,11 +66,40 @@ def decrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard) -> str
     enc_message = text
     if plugboard is not None:
         enc_message = plugboard.apply_plugboard(enc_message)
-                
-    # Decrypt in reverse order (rotor3 -> rotor2 -> rotor1)
-    out = enc_message
-    for r in reversed(rotors):
-        out = r.decrypt(out)
+
+    # Snapshot offsets so we can restore
+    original_offsets = [r.get_offset() for r in rotors]
+
+    # Copy of offsets we will step
+    local_offsets = original_offsets[:]
+
+    def step_offsets():
+        # Rightmost rotor (last in list) steps every letter; carry left on wrap
+        for i in range(len(local_offsets) - 1, -1, -1):
+            local_offsets[i] = (local_offsets[i] + 1) % 26
+            if local_offsets[i] != 0:
+                break
+
+    # Decrypt the message accounting for double letters
+    out_chars = []
+    try:
+        for ch in enc_message:
+            if ch.isalpha():
+                step_offsets()
+                for i, r in enumerate(rotors):
+                    r.set_offset(local_offsets[i])
+                char = ch.lower()
+                for r in rotors:
+                    char = r.decrypt(char)
+                out_chars.append(char)
+            else:
+                out_chars.append(ch)
+        out = ''.join(out_chars)
+    finally:
+        # restore caller’s offsets
+        for r, off in zip(rotors, original_offsets):
+            r.set_offset(off)           
+    
 
     # Apply plugboard again at the end (if configured)
     if plugboard is not None:

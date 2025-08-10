@@ -20,13 +20,8 @@ class Rotor:
                 # 1) rotor shift whatever offset the user set 
                 index = self.letters.index(char)
                 new_index = (index + self.offset) % 26
-                encrypted_char = self.letters[new_index]
+                encrypted.append(self.letters[new_index])
                 
-                # 2) if current inputted char is the same as index-1, it is a repeat. shift rotor again.
-                if encrypted and encrypted[-1] == encrypted_char:
-                    new_index = (new_index + 1) % 26
-                    encrypted_char = self.letters[new_index]  #Update current inputted word to avoid repeats. Move repeats +1 in Rotors. 
-                encrypted.append(encrypted_char)  #Add char to list. We keep track of this to be able to decrypt later. 
             else:
                 # allow spaces and punctuation to pass through.
                 encrypted.append(char)  # Add spaces and punctuation to list
@@ -43,10 +38,6 @@ class Rotor:
                 base = (current_index - self.offset) % 26
                 # orig_index = (current_index - self.offset) % 26
                 
-                # one we decrypt, check for duplicates. 
-                if decrypted and self.letters[base] == decrypted[-1]:
-                    base =  (base -1) % 26
-              
                 decrypted.append(self.letters[base])
 
             else:
