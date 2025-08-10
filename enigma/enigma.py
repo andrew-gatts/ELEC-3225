@@ -1,7 +1,31 @@
-from rotor import Rotor
-from plugboard import Plugboard
-from database import init_db, add_entry, close_db
+from .rotor import Rotor
+from .plugboard import Plugboard
+from .database import init_db, add_entry, close_db
+
 DB_PATH = "database.db"
+
+def encrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard) -> str:
+    
+    # Apply plugboard first (if configured)
+    message = text
+    if plugboard is not None:
+        message = plugboard.apply_plugboard(message)
+
+    # Then apply rotors in sequence
+    out = message
+    for r in rotors:
+        out = r.encrypt(out)
+
+    # Apply plugboard again at the end (if configured)
+    if plugboard is not None:
+        out = plugboard.apply_plugboard(out)
+
+    # Add result to the database
+    db = init_db(DB_PATH)
+    add_entry(db, text, out)
+    close_db(db)
+
+    return out
 
 def main():
     print("\n=== Enigma ===")
@@ -48,25 +72,12 @@ def main():
                     in_message = str(input())
                     message = in_message.strip()
                 
-                    # Apply plugboard first (if configured)
-                    if plugboard1 is not None:
-                        message = plugboard1.apply_plugboard(message)
+                    # Use the encrypt function
+                    out_message = encrypt_message(message, [rotor1, rotor2, rotor3], plugboard1)
                     
-                    # Then apply rotors in sequence
-                    message_r1 = rotor1.encrypt(message)
-                    print(f"\n\n----- FIRST ROTOR: {message} --> {message_r1}")
-                    message_r2 = rotor2.encrypt(message_r1)
+                    print(f"Encrypted message: {out_message}")
 
-                    print(f"\n\n ----- SECOND ROTOR: {message_r1} --> {message_r2}")
-                    message_r3 = rotor3.encrypt(message_r2)
-                    print(f"\n \n ----- THIRD ROTOR: {message_r2} --> {message_r3}")
-                    
-                    # Apply plugboard again at the end (if configured)
-                    if plugboard1 is not None:
-                        message_r3 = plugboard1.apply_plugboard(message_r3)
-                    
-                    print(f"Encrypted message: {message_r3}")
-            
+                                
             case 5:
                 if rotor1 is None or rotor2 is None or rotor3 is None:
                     print("Please set up rotors first (option 2)")

@@ -1,18 +1,6 @@
 #!/usr/bin/env python3
-"""
-Enigma/Bombe helper using the user's custom Rotor definition (offset + repeat-bump rule).
-Implements:
-  • Plugboard (symmetric swaps)
-  • Three rotors (or any number) using the provided encrypt/decrypt behavior
-  • Decrypt path: undo plugboard first, then run rotors in reverse with Rotor.decrypt, then plugboard again
-  • Guessing function: supply '?' for unknown offsets to brute-force and score outputs by dictionary hits
-
-Everything is in one file; you can run it directly.
-"""
-
 from itertools import product
 import re
-import string
 
 # ------------------------- ROTOR -------------------------
 class Rotor:
@@ -27,30 +15,8 @@ class Rotor:
     def get_offset(self) -> int:
         return self.offset
 
-    def encrypt(self, message: str) -> str:
-        """Encrypt entire message with this rotor, following the rule:
-           1) shift by offset
-           2) if output would repeat previous encrypted char, bump +1
-        """
-        encrypted = []
-        for char in message.lower():
-            if char in self.letters:
-                idx = self.letters.index(char)
-                new_idx = (idx + self.offset) % 26
-                enc_char = self.letters[new_idx]
-
-                # bump if it would repeat the previous encrypted char
-                if encrypted and encrypted[-1] == enc_char:
-                    new_idx = (new_idx + 1) % 26
-                    enc_char = self.letters[new_idx]
-
-                encrypted.append(enc_char)
-            else:
-                encrypted.append(char)
-        return ''.join(encrypted)
-
     def decrypt(self, encrypted_message: str) -> str:
-        """Reverse of encrypt(). See explanation in prior message."""
+        # Decrypt function to undo the encryption
         decrypted = []
         prev_enc_index = None  # index of previous encrypted letter (after all processing)
 
@@ -66,7 +32,7 @@ class Rotor:
                 # equals the previous encrypted letter index
                 if prev_enc_index is not None and pre_bump_index == prev_enc_index:
                     # undo the +1 bump
-                    orig_index = (cur_enc_index - 1 - self.offset) % 26
+                    orig_index = (cur_enc_index - 0 - self.offset) % 26
 
                 decrypted.append(self.letters[orig_index])
                 prev_enc_index = cur_enc_index
@@ -82,7 +48,7 @@ class Rotor:
 
 # ------------------------- PLUGBOARD -------------------------
 def add_mapping(plugboard_map: dict, a: str, b: str) -> bool:
-    """Add symmetric mapping a<->b if neither is already used."""
+    # Add symmetric mapping a<->b if neither is already used
     a = a.lower(); b = b.lower()
     if a in plugboard_map or b in plugboard_map:
         return False
@@ -93,19 +59,6 @@ def add_mapping(plugboard_map: dict, a: str, b: str) -> bool:
 
 def plugboard_apply(text: str, plugboard_map: dict) -> str:
     return ''.join(plugboard_map.get(ch, ch) for ch in text.lower())
-
-
-# ------------------------- ENCRYPT / DECRYPT PIPELINE -------------------------
-def encrypt_message(message: str, rotors: list[Rotor], plugboard_map: dict) -> str:
-    # Plugboard first
-    msg = plugboard_apply(message, plugboard_map)
-    # Forward through each rotor (encrypt)
-    for r in rotors:
-        msg = r.encrypt(msg)
-    # (No reflector stage here because the provided rotor model already contains asymmetry.)
-    # Plugboard again
-    msg = plugboard_apply(msg, plugboard_map)
-    return msg
 
 
 def decrypt_message(ciphertext: str, rotors: list[Rotor], plugboard_map: dict) -> str:
@@ -121,7 +74,7 @@ def decrypt_message(ciphertext: str, rotors: list[Rotor], plugboard_map: dict) -
 
 # ------------------------- GUESSING UTILITIES -------------------------
 def expand_unknowns(pattern_list):
-    """pattern_list like ['?', '5', '?'] -> iterator of all tuples"""
+    # pattern_list like ['?', '5', '?'] -> iterator of all tuples
     iterables = []
     for p in pattern_list:
         if p == "?":
@@ -132,7 +85,7 @@ def expand_unknowns(pattern_list):
 
 
 def score_plaintext(pt: str, words: list[str]) -> int:
-    """Simple word counter using word boundaries."""
+    # Simple word counter using word boundaries
     pt_up = pt.upper()
     count = 0
     for w in words:
@@ -148,9 +101,8 @@ def guess_offsets(ciphertext: str,
                   plugboard_map: dict,
                   dict_words: list[str],
                   top_n: int = 10) -> list[tuple[int, tuple[int, ...], str]]:
-    """Brute-force unknown offsets. Returns top_n results sorted by score.
-       Each result is (score, offsets_tuple, plaintext)
-    """
+    # Brute-force unknown offsets. Returns top_n results sorted by score.
+    # Each result is (score, offsets_tuple, plaintext)
     results = []
     for combo in expand_unknowns(rotor_pattern):
         # Build rotors fresh for each combo
@@ -170,7 +122,7 @@ def guess_offsets(ciphertext: str,
 
 # ------------------------- CLI / MAIN -------------------------
 def array_match():
-    """Replicates the earlier array_Match idea: compare ciphertext against a crib and list mismatches."""
+    # Replicates the earlier array_Match idea: compare ciphertext against a crib and list mismatches.
     message_crypt = input("Type in the enigma message you wish to decrypt: ").lower()
     decoder_machine = input("What do you think the message is (crib)? ").lower()
 
@@ -204,7 +156,6 @@ def main():
         print("\nMenu:\n"
               " 1) Set rotor offsets (use ? for unknowns)\n"
               " 2) Enter plugboard pairs\n"
-              " 3) Encrypt message\n"
               " 4) Decrypt message\n"
               " 5) Guess unknown offsets\n"
               " 6) Crib helper (array_match)\n"
@@ -232,16 +183,7 @@ def main():
                     else:
                         print("Already mapped or invalid")
 
-            case 3:
-                msg = input("Plaintext: ")
-                # Must resolve all '?' first
-                if '?' in rotor_pattern:
-                    print("You have unknown offsets. Set them or use guessing.")
-                    continue
-                offsets = [int(x) % 26 for x in rotor_pattern]
-                rotors = [Rotor(o) for o in offsets]
-                ct = encrypt_message(msg, rotors, plugboard)
-                print("Ciphertext:", ct)
+
 
             case 4:  
                 ct = input("Ciphertext: ")
