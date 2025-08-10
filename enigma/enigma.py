@@ -1,10 +1,16 @@
-from .rotor import Rotor
-from .plugboard import Plugboard
-from .database import init_db, add_entry, close_db
+try:
+    from .rotor import Rotor
+    from .plugboard import Plugboard
+    from .database import init_db, add_entry, close_db
+except ImportError: # Running directly
+    from rotor import Rotor
+    from plugboard import Plugboard
+    from database import init_db, add_entry, close_db
+
 
 DB_PATH = "database.db"
 
-def encrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard) -> str:
+def encrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard, DB_PATH) -> str:
     
     # Apply plugboard first (if configured)
     message = text
@@ -27,6 +33,24 @@ def encrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard) -> str
 
     return out
 
+def decrypt_message(text: str, rotors: list[Rotor], plugboard: Plugboard) -> str:
+    # Apply plugboard first (if configured)
+    enc_message = text
+    if plugboard is not None:
+        enc_message = plugboard.apply_plugboard(enc_message)
+                
+    # Decrypt in reverse order (rotor3 -> rotor2 -> rotor1)
+    out = enc_message
+    for r in reversed(rotors):
+        out = r.decrypt(out)
+
+    # Apply plugboard again at the end (if configured)
+    if plugboard is not None:
+         out = plugboard.apply_plugboard(out)
+
+    return out
+
+
 def main():
     print("\n=== Enigma ===")
     # Initialize variables to track setup state
@@ -39,12 +63,12 @@ def main():
         print("\nMenu:\n" 
               " 1) Set up Plugboard\n"
               " 2) Set Rotors\n"
-              " 3) Set Reflector\n"
-              " 4) Encrypt Message\n"
-              " 5) Decrypt Message\n"
+              " 3) Encrypt Message\n"
+              " 4) Decrypt Message\n"
               " 0) Quit ")
         choice = int(input("Select: "))
         match choice: 
+            # Plugboard funciton
             case 1:
                 print("----ENTERING PLUGBOARD CONFIG ----\n")
                 plugboard1 = Plugboard()
@@ -54,6 +78,8 @@ def main():
                         plugboard1.swap()
                     case 2:
                         pass
+            
+            # Rotor function
             case 2: 
                 offset_r1 = int(input("Enter the offset for rotor #1 (0-25): "))
                 rotor1 = Rotor(offset_r1)
@@ -62,9 +88,9 @@ def main():
                 offset_r3 = int(input("Enter the offset for rotor #3 (0-25): "))
                 rotor3 = Rotor(offset_r3)
                 print("Rotors configured successfully!")
-            case 3: 
-                print("This is the Set Reflector function")
-            case 4:
+            
+            # Encrypt function
+            case 3:
                 if rotor1 is None or rotor2 is None or rotor3 is None:
                     print("Please set up rotors first (option 2)")
                 else:
@@ -73,31 +99,30 @@ def main():
                     message = in_message.strip()
                 
                     # Use the encrypt function
-                    out_message = encrypt_message(message, [rotor1, rotor2, rotor3], plugboard1)
+                    out_message = encrypt_message(message, [rotor1, rotor2, rotor3], plugboard1, DB_PATH)
                     
                     print(f"Encrypted message: {out_message}")
 
-                                
-            case 5:
+            # Decrypt function
+            case 4:
                 if rotor1 is None or rotor2 is None or rotor3 is None:
                     print("Please set up rotors first (option 2)")
                 else:
                     print("What message would you like to decrypt: ")
-                    encrypted_message = str(input())
-                    # Apply plugboard first (if configured)
-                    if plugboard1 is not None:
-                        encrypted_message = plugboard1.apply_plugboard(encrypted_message)
+                    enc_message = str(input())
+                    message = enc_message.strip()
+
+                    # Use the decrypt function
+                    out_message = decrypt_message(message, [rotor1, rotor2, rotor3], plugboard1)
                     
-                    # Decrypt in reverse order (rotor3 -> rotor2 -> rotor1)
-                    message_r3 = rotor3.decrypt(encrypted_message)
-                    message_r2 = rotor2.decrypt(message_r3)
-                    decrypted_message = rotor1.decrypt(message_r2)
-                    
-                    # Apply plugboard again at the end (if configured)
-                    if plugboard1 is not None:
-                        decrypted_message = plugboard1.apply_plugboard(decrypted_message)
-                    
-                    print(f"Decrypted message: {decrypted_message}")
+                    print(f"Decrypted message: {out_message}")
+
+            case 6:
+                print(f"Oh look at you trying to break things. Arent you soo smart and funny. " 
+                      "I bet you dont even use vim. "
+                      "You dont even understand the concept of a bootloader or the pcie bus. "
+                      "What an absolute goober, perhaps even a henchmen.")
+            # Exit function
             case 0:
                 print("You are now exiting the program.")
                 break

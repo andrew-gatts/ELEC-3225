@@ -156,9 +156,9 @@ def main():
         print("\nMenu:\n"
               " 1) Set rotor offsets (use ? for unknowns)\n"
               " 2) Enter plugboard pairs\n"
-              " 4) Decrypt message\n"
-              " 5) Guess unknown offsets\n"
-              " 6) Crib helper (array_match)\n"
+              " 3) Decrypt message\n"
+              " 4) Guess unknown offsets\n"
+              " 5) Crib helper (array_match)\n"
               " 0) Quit")
         choice = int(input("Select: "))
 
@@ -185,7 +185,7 @@ def main():
 
 
 
-            case 4:  
+            case 3:  
                 ct = input("Ciphertext: ")
                 if '?' in rotor_pattern:
                     print("You have unknown offsets. Set them or use guessing.")
@@ -195,7 +195,7 @@ def main():
                 pt = decrypt_message(ct, rotors, plugboard)
                 print("Plaintext:", pt)
 
-            case 5:
+            case 4:
                 ct = input("Ciphertext to test: ")
                 pat_in = input("Pattern (comma-separated, ?=unknown) or blank to reuse current: ").strip()
                 if pat_in:
@@ -212,7 +212,7 @@ def main():
 
                 guess_offsets(ct, rotor_pattern, plugboard, dict_words, top_n)
 
-            case 6:
+            case 5:
                 array_match()
 
             case _:

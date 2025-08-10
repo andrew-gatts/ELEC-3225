@@ -57,7 +57,7 @@ class TestEnigmaPipelineWithDB(unittest.TestCase):
         rotors = [Rotor(1), Rotor(2), Rotor(3)]
         pb = Plugboard()
         pt = "Enigma!"
-        ct = en.encrypt_message(pt, rotors, pb, DB_PATH=self.DB_PATH, save=True)
+        ct = en.encrypt_message(pt, rotors, pb, DB_PATH=self.DB_PATH)
         # decrypt
         back = en.decrypt_message(ct, rotors, pb)
         # rotor/plugboard pipeline lowercases letters

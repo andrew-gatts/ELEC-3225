@@ -1,6 +1,6 @@
 # test-bombe.py
 import unittest
-from bombe import (
+from bombe.bombe import (
     Rotor,
     add_mapping,
     plugboard_apply,

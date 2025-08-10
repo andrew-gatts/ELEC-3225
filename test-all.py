@@ -33,7 +33,8 @@ def main():
         mod = load_module_from_file(path, alias)
         suite.addTests(loader.loadTestsFromModule(mod))
 
-    runner = unittest.TextTestRunner(verbosity=2)
+    # ↓↓↓ minimal change: default verbosity + buffer output
+    runner = unittest.TextTestRunner(verbosity=1, buffer=True)
     result = runner.run(suite)
     sys.exit(0 if result.wasSuccessful() else 1)
 

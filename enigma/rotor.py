@@ -40,19 +40,15 @@ class Rotor:
             if char in self.letters:
                 current_index = self.letters.index(char)
                 # Decrypt, so shift -1 in letters
-                orig_index = (current_index - self.offset) % 26
+                base = (current_index - self.offset) % 26
+                # orig_index = (current_index - self.offset) % 26
                 
                 # one we decrypt, check for duplicates. 
-                if decrypted:
-                    prev = decrypted[-1] 
-                    if prev in self.letters:  # Only check if prev is a letter
-                        prev_encrypted_index = (self.letters.index(prev) + self.offset) % 26
-                        skip_enc_index = (prev_encrypted_index + 1) % 26
-                        # if our char matches that "skipped‐to" codepoint,
-                        # undo from cur_index-1 instead of straight reverse
-                        if current_index == skip_enc_index:
-                            orig_index = (current_index - 1 - self.offset) % 26
-                decrypted.append(self.letters[orig_index])
+                if decrypted and self.letters[base] == decrypted[-1]:
+                    base =  (base -1) % 26
+              
+                decrypted.append(self.letters[base])
+
             else:
                 # spaces and punctuation stay
                 decrypted.append(char)
