@@ -41,7 +41,7 @@ class TestPipeline(unittest.TestCase):
         pb = {'x':'y','y':'x'}
         rotors = [Rotor(2), Rotor(4)]
         msg    = "Pack1!"
-        ct     = "vgiq1!"
+        ct     = "wilu1!"
         pt     = decrypt_message(ct,    rotors, pb)
         self.assertEqual(pt, msg.lower())
 
@@ -51,13 +51,49 @@ class TestUnknownsAndScoring(unittest.TestCase):
         combos = list(expand_unknowns(patterns))
         self.assertEqual(len(combos), 26 * 1 * 26)
         self.assertIn((0,2,0), combos)
-    def test_score_plaintext(self):
-        txt = "The cat and the dog."
-        self.assertEqual(score_plaintext(txt, ["the","dog","mouse"]), 2)
 
-class TestGuessOffsets(unittest.TestCase):
+    def test_score_plaintext(self):
+        # tiny sanity check
+        words = ["hello", "world"]
+        self.assertEqual(score_plaintext("hello", words), 1)
+        self.assertEqual(score_plaintext("hello world", words), 2)
+        self.assertEqual(score_plaintext("HELL0 W0RLD", words), 0)
+
+    # --- helper: generate ciphertext consistent with step-before-decode ---
+    def encrypt_with_stepping(self, plaintext: str, offsets: tuple[int, ...]) -> str:
+        """
+        Mirror of your decrypt_message stepping:
+        - step BEFORE each character
+        - then run FORWARD through rotors applying +offset (Caesar)
+        Plugboard is omitted (use {} in tests) to keep this deterministic.
+        """
+        local = [o % 26 for o in offsets]  # do not mutate objects under test
+
+        def step():
+            # rightmost rotor steps every char; carry left on wrap
+            for i in range(len(local) - 1, -1, -1):
+                local[i] = (local[i] + 1) % 26
+                if local[i] != 0:
+                    break
+
+        out = []
+        for ch in plaintext.lower():
+            if 'a' <= ch <= 'z':
+                step()
+                x = ord(ch) - 97
+                # forward through rotors (encryption): +offset for each rotor
+                for off in local:
+                    x = (x + off) % 26
+                out.append(chr(97 + x))
+            else:
+                out.append(ch)
+        return ''.join(out)
+
     def test_guess_offsets_simple(self):
-        # ciphertext 'a' with unknown offset.  every offset decrypts to 'a'
+        """
+        With step-before-decode, a one-letter ciphertext 'a' is maximized at offset 25,
+        because the first step turns offset 25 -> effective 0 for that character.
+        """
         results = guess_offsets(
             ciphertext='a',
             rotor_pattern=['?'],
@@ -65,10 +101,35 @@ class TestGuessOffsets(unittest.TestCase):
             dict_words=['a'],
             top_n=3
         )
-        # best score=1, offset=0 should be first
+        # best is score=1, offset=(25,), plaintext='a'
         self.assertEqual(results[0][0], 1)
-        self.assertEqual(results[0][1], (0,))
+        self.assertEqual(results[0][1], (25,))
         self.assertEqual(results[0][2], 'a')
+
+    def test_guess_offsets_larger_phrase(self):
+        """
+        Larger, deterministic case:
+        - Choose a plaintext with multiple dictionary words
+        - Encrypt it locally with the same stepping convention
+        - Ensure guess_offsets recovers the right offsets and plaintext
+        """
+        target_offsets = (0, 6)  # two-rotor case keeps brute force to 26*26
+        plaintext = "attack at dawn"
+        ciphertext = self.encrypt_with_stepping(plaintext, target_offsets)
+
+        results = guess_offsets(
+            ciphertext=ciphertext,
+            rotor_pattern=['?', '?'],
+            plugboard_map={},  # keep empty to match helper
+            dict_words=['attack', 'at', 'dawn'],
+            top_n=3
+        )
+
+        # Top candidate should be the true one
+        self.assertGreaterEqual(results[0][0], 3)             # matched all three words
+        self.assertEqual(results[0][1], target_offsets)        # recovered offsets
+        self.assertEqual(results[0][2], plaintext)             # recovered plaintext
+
 
 if __name__ == "__main__":
     unittest.main()

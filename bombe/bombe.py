@@ -62,14 +62,50 @@ def plugboard_apply(text: str, plugboard_map: dict) -> str:
 
 
 def decrypt_message(ciphertext: str, rotors: list[Rotor], plugboard_map: dict) -> str:
-    # Undo plugboard first
-    msg = plugboard_apply(ciphertext, plugboard_map)
-    # Backwards through rotors using decrypt
-    for r in reversed(rotors):
-        msg = r.decrypt(msg)
-    # Final plugboard
-    msg = plugboard_apply(msg, plugboard_map)
-    return msg
+    """Decrypt with step-before-decode rotor stepping, symmetric plugboard pre/post."""
+    # Apply plugboard first
+    def pb_apply(s: str) -> str:
+        return ''.join(plugboard_map.get(ch, ch) for ch in s.lower())
+
+    msg = pb_apply(ciphertext)
+
+    # Snapshot & local offsets we will mutate while stepping
+    original_offsets = [r.get_offset() for r in rotors]
+    local_offsets = original_offsets[:]
+
+    def step_offsets():
+        # Rightmost rotor steps every char; carry left on wrap (0 after 25)
+        for i in range(len(local_offsets) - 1, -1, -1):
+            local_offsets[i] = (local_offsets[i] + 1) % 26
+            if local_offsets[i] != 0:
+                break
+
+    out_chars = []
+    try:
+        for ch in msg:
+            if ch.isalpha():
+                # Step before processing this character
+                step_offsets()
+                # Apply current stepped offsets to rotors
+                for i, r in enumerate(rotors):
+                    r.set_offset(local_offsets[i])
+
+                c = ch
+                # Go backwards through the rotors when decrypting
+                for r in reversed(rotors):
+                    c = r.decrypt(c)
+                out_chars.append(c)
+            else:
+                out_chars.append(ch)
+        out = ''.join(out_chars)
+    finally:
+        # Restore caller's rotor offsets
+        for r, off in zip(rotors, original_offsets):
+            r.set_offset(off)
+
+    # Final plugboard pass
+    return pb_apply(out)
+
 
 
 # ------------------------- GUESSING UTILITIES -------------------------
