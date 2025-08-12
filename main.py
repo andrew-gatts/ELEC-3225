@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-"""
-Unified Tk GUI for Enigma + Bombe that calls your real module functions.
-
-- Uses enigma.encrypt_message / enigma.decrypt_message (and DB_PATH if provided)
-- Uses bombe.guess_offsets
-- Avoids duplicating crypto logic in the GUI
-- Allows pushing Bombe results back into the Enigma window
-
-Project layout expected:
-  <root>/
-    enigma/
-      __init__.py
-      enigma.py        # exposes encrypt_message, decrypt_message, (optionally DB_PATH)
-      rotor.py         # exposes class Rotor(offset:int)
-      plugboard.py     # exposes class Plugboard (has a .letters list mapping)
-    bombe/
-      __init__.py
-      bombe.py         # exposes guess_offsets
-    gui.py             # (this file)
-
-Run:
-  python3 gui.py
-"""
 from __future__ import annotations
 
 import re
@@ -295,7 +272,8 @@ class EnigmaMachineGUI(tk.Toplevel):
 
     def _set_plugboard(self):
         # Validation occurs on use; just acknowledge
-        #messagebox.showinfo("Plugboard", "Plugboard pairs recorded. They will be applied on encrypt/decrypt.")
+        return 0
+    #    messagebox.showinfo("Plugboard", "Plugboard pairs recorded. They will be applied on encrypt/decrypt.")
 
     def _process_char(self, ch: str):
         if enigma_encrypt is None or ERotor is None:
@@ -604,7 +582,7 @@ class BombeGUI(tk.Toplevel):
             pairs_str = _pairs_from_map(self._last_pb_map or {})
             enigma.plugboard_entry.delete(0, tk.END)
             enigma.plugboard_entry.insert(0, pairs_str)
-            enigma._set_plugboard()
+            #enigma._set_plugboard()
         except Exception as e:
             messagebox.showerror("Plugboard Error", f"Failed to apply plugboard: {e}")
             return
@@ -634,43 +612,6 @@ class BombeGUI(tk.Toplevel):
             self.enigma_window = getattr(self.master, "_enigma_window", None)
         else:
             messagebox.showwarning("Enigma Not Available", "Could not open the Enigma window from here.")
-
-    """def _run_bombe(self):
-        ciphertext = self.ciphertext_entry.get().strip().lower()
-        dictionary_words_str = self.dictionary_entry.get().strip().lower()
-        plugboard_pairs_str = self.plugboard_entry.get().strip().lower()
-        if not ciphertext:
-            messagebox.showwarning("Input Error", "Please enter ciphertext to analyze.")
-            return
-        dict_words = [w.strip() for w in dictionary_words_str.split(',') if w.strip()] or [w.lower() for w in self.default_dictionary]
-        pb_map = _pb_map_from_pairs(plugboard_pairs_str)
-
-        # Clear previous
-        for iid in self.results_view.get_children():
-            self.results_view.delete(iid)
-
-        if bombe_guess_offsets is None:
-            messagebox.showerror("Unavailable", "bombe.bombe not available.")
-            return
-
-        try:
-            results = bombe_guess_offsets(ciphertext, ['?','?','?'], pb_map, dict_words, top_n=10)
-        except Exception as e:
-            messagebox.showerror("Bombe Failed", str(e))
-            return
-
-        if not results:
-            messagebox.showinfo("No Results", "No candidates found.")
-            return
-
-        for (score, offsets, plaintext) in results:
-            preview = plaintext.strip().replace("\n", " ")
-            if len(preview) > 140:
-                preview = preview[:137] + "..."
-            self.results_view.insert("", "end", values=(score, f"{offsets}", preview))
-
-        self._last_ciphertext = ciphertext
-        self._last_pb_map = pb_map"""
 
     def _apply_selected_to_enigma(self):
         sel = self.results_view.selection()
@@ -714,7 +655,7 @@ class BombeGUI(tk.Toplevel):
             pairs_str = _pairs_from_map(self._last_pb_map or {})
             enigma.plugboard_entry.delete(0, tk.END)
             enigma.plugboard_entry.insert(0, pairs_str)
-            enigma._set_plugboard()
+            #enigma._set_plugboard()
         except Exception as e:
             messagebox.showerror("Plugboard Error", f"Failed to apply plugboard: {e}")
             return
