@@ -43,7 +43,7 @@ class TestPlugboard(unittest.TestCase):
 
 class TestEnigmaPipelineWithDB(unittest.TestCase):
     def setUp(self):
-        self.DB_PATH = "file:enigma_unittest?mode=memory&cache=shared"
+        self.DB_PATH = "test-db.db"
         self.db = init_db(self.DB_PATH)
 
     def tearDown(self):
@@ -51,7 +51,7 @@ class TestEnigmaPipelineWithDB(unittest.TestCase):
             self.db.close()
         except Exception:
             pass
-
+    
     def test_encrypt_decrypt_and_db_write(self):
         rotors = [Rotor(1), Rotor(2), Rotor(3)]
         pb = Plugboard()
@@ -66,7 +66,7 @@ class TestEnigmaPipelineWithDB(unittest.TestCase):
         rows = print_all_entries(db)
         db.close()
         self.assertTrue(any((row[1] == pt and row[2] == ct) for row in rows), "DB row not found for (message, encrypted)")
-
+                       
 class TestDoubleLetters(unittest.TestCase):
     def setUp(self):
         self.rotors = [Rotor(0), Rotor(0), Rotor(0)]
